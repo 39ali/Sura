@@ -1,4 +1,3 @@
-#pragma once
 #include "vk_mesh.h"
 #include <iostream>
 #include <tiny_obj_loader.h>

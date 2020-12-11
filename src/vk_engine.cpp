@@ -1,4 +1,4 @@
-﻿#include "vk_engine.h"
+#include "vk_engine.h"
 #pragma warning(disable : 26812)
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -59,7 +59,7 @@ void VulkanEngine::init_vulkan() {
   vkb::InstanceBuilder builder;
 
   auto inst = builder.set_app_name("Vulkan")
-                  .request_validation_layers(true)
+    .request_validation_layers(true)
                   .require_api_version(1, 1, 0)
                   .use_default_debug_messenger()
                   .build();
@@ -73,17 +73,28 @@ void VulkanEngine::init_vulkan() {
 
   vkb::PhysicalDeviceSelector selector{vkb_inst};
 
-  vkb::PhysicalDevice physicalDevice = selector.set_minimum_version(1, 1)
-                                           .set_surface(m_surface)
-                                           .select()
-                                           .value();
-
-  m_physical_device = physicalDevice.physical_device;
-
+  
+    
+   //
+  auto physicalDeviceResult=  selector.set_minimum_version(1,1)                                          .set_surface(m_surface).select();
+    vkb::PhysicalDevice  physicalDevice;
+    if (physicalDeviceResult.has_value()){
+        physicalDevice = physicalDeviceResult.value();
+        printf ("Using vulkan : 1.1\n");
+    }else {
+     auto  physicalDeviceResult= selector.set_minimum_version(1,0)                                          .set_surface(m_surface).select();
+           physicalDevice = physicalDeviceResult.value();
+         printf ("Using vulkan : 1.0\n");
+    }
+  
+ m_physical_device = physicalDevice.physical_device;
+    
   vkb::DeviceBuilder deviceBuilder{physicalDevice};
   vkb::Device device = deviceBuilder.build().value();
   m_device = device.device;
 
+    
+    
   m_graphics_queue_family =
       device.get_queue_index(vkb::QueueType::graphics).value();
   m_graphics_queue = device.get_queue(vkb::QueueType::graphics).value();

@@ -634,7 +634,7 @@ detail::Result<Instance> InstanceBuilder::build () const {
         added_window_exts = check_add_window_ext ("VK_KHR_xlib_surface") || added_window_exts;
         added_window_exts = check_add_window_ext ("VK_KHR_wayland_surface") || added_window_exts;
 #elif defined(__APPLE__)
-		bool added_window_exts = check_add_window_ext ("VK_KHR_metal_surface");
+		bool added_window_exts = check_add_window_ext ("VK_MVK_macos_surface");
 #endif
 		if (!khr_surface_added || !added_window_exts)
 			return make_error_code (InstanceError::windowing_extensions_not_present);

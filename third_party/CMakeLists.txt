@@ -39,11 +39,21 @@ target_sources(tinyobjloader PRIVATE
 
 target_include_directories(tinyobjloader PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/tinyobjloader" )
 
-set(sdl2_DIR "SDL_PATH" CACHE FILEPATH "Path to SDL2")
+##sdl2
 add_library(sdl2 INTERFACE)
+if (APPLE)
+find_package(SDL2 REQUIRED)
+target_include_directories(sdl2 INTERFACE ${SDL2_INCLUDE_DIRS} )
+target_link_libraries(sdl2 INTERFACE ${SDL2_LIBRARIES})
+else ()
+set(sdl2_DIR "SDL_PATH" CACHE FILEPATH "Path to SDL2")
 target_include_directories(sdl2 INTERFACE "${sdl2_DIR}/include" "${sdl2_image_DIR}/include" )
 target_link_directories(sdl2 INTERFACE "${sdl2_DIR}/lib/x64" "${sdl2_image_DIR}/lib/x64")
 target_link_libraries(sdl2 INTERFACE SDL2 SDL2main)
+endif()
+
+
+
 
 add_library(imgui STATIC)
 
