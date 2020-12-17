@@ -9,6 +9,17 @@
 #include <vk_mesh.h>
 #include <vk_types.h>
 
+constexpr unsigned int FRAME_OVERLAP = 2;
+struct FrameData {
+
+  VkSemaphore present_semaphore;
+  VkSemaphore render_semaphore;
+  VkFence render_fence;
+
+  VkCommandPool command_pool;
+  VkCommandBuffer command_buffer;
+};
+
 class VulkanEngine {
 public:
   struct SDL_Window *m_window{nullptr};
@@ -44,6 +55,14 @@ private:
   void init_scene();
   void draw_objects(VkCommandBuffer cmd, RenderObject *first, size_t count);
 
+  Material *create_material(VkPipeline pipeline, VkPipelineLayout layout,
+                            const std::string &name);
+  Material *get_material(const std::string &name);
+  Mesh *get_mesh(const std::string &name);
+  void draw_objects(VkCommandBuffer cmd, RenderObject *first, int count);
+
+  FrameData &get_current_frame();
+
 private:
   bool m_isInitialized{false};
   int m_frameNumber{0};
@@ -66,22 +85,18 @@ private:
   VkImageView m_depth_image_view;
   AllocatedImage m_depth_image;
 
-  // commands
+  // queues
   VkQueue m_graphics_queue;
   uint32_t m_graphics_queue_family;
-  VkCommandPool m_command_pool;
-  VkCommandBuffer m_main_command_buffer;
 
   // renderpass
   VkRenderPass m_render_pass;
   std::vector<VkFramebuffer> m_framebuffers;
 
-  // sync
-  VkSemaphore m_present_semaphore, m_render_semaphore;
-  VkFence m_render_fence;
+  // frameData
+  FrameData m_frames[FRAME_OVERLAP];
 
   // pipelines
-
   VkPipelineLayout m_triangle_pipeline_layout;
   VkPipeline m_triangle_pipeline;
 
@@ -102,10 +117,4 @@ private:
   std::vector<RenderObject> m_renderables;
   std::unordered_map<std::string, Material> m_materials;
   std::unordered_map<std::string, Mesh> m_meshes;
-
-  Material *create_material(VkPipeline pipeline, VkPipelineLayout layout,
-                            const std::string &name);
-  Material *get_material(const std::string &name);
-  Mesh *get_mesh(const std::string &name);
-  void draw_objects(VkCommandBuffer cmd, RenderObject *first, int count);
 };
