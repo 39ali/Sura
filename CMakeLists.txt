@@ -1,12 +1,8 @@
-﻿#
+﻿
 cmake_minimum_required (VERSION 3.8)
 
-project ("Sura")
+project ("SuraEngine")
 
-if (APPLE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-add_definitions(-std=c++17)
-endif()
 
 add_definitions(-DTRACY_ENABLE -DTRACY_CALLSTACK)
 
@@ -25,6 +21,9 @@ if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "AMD64")
 else()
   set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin32/glslangValidator.exe")
 endif()
+
+#set sura project as default project
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Sura)
 
 ## find all the shader files under the shaders folder
 file(GLOB_RECURSE GLSL_SOURCE_FILES

@@ -40,21 +40,14 @@ target_sources(tinyobjloader PRIVATE
 target_include_directories(tinyobjloader PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/tinyobjloader" )
 
 ##sdl2
-add_library(sdl2 INTERFACE)
-if (APPLE)
-find_package(SDL2 REQUIRED)
-target_include_directories(sdl2 INTERFACE ${SDL2_INCLUDE_DIRS} )
-target_link_libraries(sdl2 INTERFACE ${SDL2_LIBRARIES})
-else ()
-set(sdl2_DIR "SDL_PATH" CACHE FILEPATH "Path to SDL2")
-target_include_directories(sdl2 INTERFACE "${sdl2_DIR}/include" "${sdl2_image_DIR}/include" )
-target_link_directories(sdl2 INTERFACE "${sdl2_DIR}/lib/x64" "${sdl2_image_DIR}/lib/x64")
-target_link_libraries(sdl2 INTERFACE SDL2 SDL2main)
-endif()
+#message("building SDL2")
+set(SDL_STATIC ON CACHE BOOL "Build a static version of SDL2")
+set( SDL_SHARED OFF CACHE BOOL "" FORCE )
+add_subdirectory(SDL2)
 
 
 
-
+## imgui
 add_library(imgui STATIC)
 
 target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
@@ -71,7 +64,7 @@ target_sources(imgui PRIVATE
 "${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_impl_sdl.cpp"
 )
 
-target_link_libraries(imgui PUBLIC Vulkan::Vulkan sdl2)
+target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2main SDL2-static)
 
 
 target_include_directories(stb_image INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb_image" )
