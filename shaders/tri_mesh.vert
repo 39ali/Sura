@@ -1,11 +1,25 @@
-#version 450
-#extension GL_KHR_vulkan_glsl: enable
+#version 460
 
 layout (location=0) in vec3 iPosition ; 
 layout (location=1) in vec3 iNormal ; 
 layout (location=2) in vec3 iColor;
 
 layout (location=0) out vec3 oColor;
+
+layout(set=0,binding=0) uniform CameraData {
+    mat4 view;
+    mat4 proj;
+    mat4 projView; 
+} cameraData;
+
+
+struct ObjectData {
+    mat4 model; 
+}; 
+
+layout(set=1, binding=0) readonly buffer ObjectBuffer {
+    ObjectData objects[];
+} objectBuffer; 
 
 
 layout (push_constant) uniform constants {
@@ -15,6 +29,8 @@ layout (push_constant) uniform constants {
 
 
 void main (){
-gl_Position =pushConstants.render_matrix* vec4 (iPosition, 1.0);
-oColor = iColor;
+    mat4 modelMatrix = objectBuffer.objects[gl_BaseInstance].model;
+    mat4 transformMatrix = cameraData.projView* modelMatrix; 
+    gl_Position =transformMatrix * vec4 (iPosition, 1.0);
+    oColor = iColor;
 }

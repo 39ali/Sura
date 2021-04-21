@@ -10,6 +10,14 @@
 #include <vk_types.h>
 
 constexpr unsigned int FRAME_OVERLAP = 2;
+
+
+struct GPUCameraData {
+    glm::mat4 view; 
+    glm::mat4 projection;
+    glm::mat4 viewProj; 
+} ;
+
 struct FrameData {
 
   VkSemaphore present_semaphore;
@@ -18,13 +26,34 @@ struct FrameData {
 
   VkCommandPool command_pool;
   VkCommandBuffer command_buffer;
+
+  //cameraData 
+  AllocatedBuffer  cameraData;  
+  VkDescriptorSet descriptorSet;
+
+  AllocatedBuffer objectBuffer; 
+  VkDescriptorSet objectDescriptor;
 };
+
+struct GPUObjectData {
+    glm::mat4 modelMatrix; 
+};
+
+
+struct GPUSceneData {
+    glm::vec4 fogColor; 
+    glm::vec4 fogDistances;
+    glm::vec4 ambientColor; 
+    glm::vec4 sunlightDirection; 
+    glm::vec4 sunlightColor; 
+}
+;
 
 class VulkanEngine {
 public:
   struct SDL_Window *m_window{nullptr};
 
-  // initializes everything in the engine
+// initializes everything in the engine
   void init();
 
   // shuts down the engine
@@ -55,6 +84,9 @@ private:
   void init_scene();
   void draw_objects(VkCommandBuffer cmd, RenderObject *first, size_t count);
 
+
+  size_t alignUniformBufferSize(size_t originalSize);
+
   Material *create_material(VkPipeline pipeline, VkPipelineLayout layout,
                             const std::string &name);
   Material *get_material(const std::string &name);
@@ -63,11 +95,19 @@ private:
 
   FrameData &get_current_frame();
 
+
+  AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage); 
+  void init_descriptors(); 
+
+
 private:
   bool m_isInitialized{false};
   int m_frameNumber{0};
 
-  VkExtent2D m_windowExtent{1700, 900};
+  GPUSceneData m_sceneData; 
+  AllocatedBuffer m_sceneDataBuffer; 
+
+  VkExtent2D m_windowExtent{1290, 720};
   VkInstance m_instance;
   VkDebugUtilsMessengerEXT m_debug_messenger;
   VkPhysicalDevice m_physical_device;
@@ -105,6 +145,15 @@ private:
 
   // amd allocator
   VmaAllocator m_allocator;
+
+  //
+  VkDescriptorSetLayout m_descriptorSetLayout; 
+  VkDescriptorPool m_descriptorPool; 
+
+  VkDescriptorSetLayout m_objectSetLayout; 
+    
+  VkPhysicalDeviceProperties m_physicalDeviceProperties; 
+
 
   // meshes
   Mesh m_triangle_mesh;

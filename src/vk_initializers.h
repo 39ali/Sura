@@ -68,4 +68,7 @@ VkPipelineDepthStencilStateCreateInfo
 depth_stencil_create_info(bool depth_test, bool depth_write,
                           VkCompareOp compareOp);
 
+VkDescriptorSetLayoutBinding descriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding);
+VkWriteDescriptorSet writeDescriptorBuffer(VkDescriptorType type, VkDescriptorSet dstSet, VkDescriptorBufferInfo* bufferInfo, uint32_t binding);
+
 } // namespace vkinit

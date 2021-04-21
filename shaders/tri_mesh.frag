@@ -3,8 +3,16 @@ layout (location=0) in vec3 iColor;
 
 layout (location=0) out vec4 oColor;
 
-void main (){
-//gl_FragDepth  =0.0;
 
-oColor =vec4(iColor,1.0f);
+layout(set=0,binding=1) uniform SceneData {
+	vec4 fogColor;
+	vec4 fogDistances;
+	vec4 ambientColor;
+	vec4 sunlightDirection;
+	vec4 sunlightColor;
+} sceneData;
+
+void main (){
+
+oColor =vec4(iColor+ sceneData.ambientColor.xyz ,1.0f);
 }

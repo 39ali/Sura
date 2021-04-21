@@ -8,6 +8,6 @@ layout (location = 0) in vec3 inColor;
 void main() 
 {
 	//return red
-	outFragColor = vec4(1.f,0.f,0.f,1.0f);
-	outFragColor = vec4(inColor+0.1f,1.0f);
+	outFragColor = vec4(1.f,0.f,1.f,1.0f);
+//	outFragColor = vec4(inColor+0.1f,1.0f);
 }
