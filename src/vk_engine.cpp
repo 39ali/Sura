@@ -22,6 +22,44 @@
     }                                                                          \
   } while (0)
 
+
+
+
+
+void VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& func) {
+
+	VkCommandBuffer cmd;
+	VkCommandBufferAllocateInfo allocateInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+	allocateInfo.commandPool = m_gpuUploadConxtext.commandPool;
+	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocateInfo.commandBufferCount = 1;
+	VK_CHECK(vkAllocateCommandBuffers(m_device, &allocateInfo, &cmd));
+
+
+	//begin command buffer recording 
+	VkCommandBufferBeginInfo cmdBeginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+	//execute whatever 
+	func(cmd);
+	VK_CHECK(vkEndCommandBuffer(cmd));
+
+
+	VkSubmitInfo submit = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submit.commandBufferCount = 1;
+	submit.pCommandBuffers = &cmd;
+
+	VK_CHECK(vkQueueSubmit(m_graphics_queue, 1, &submit, m_gpuUploadConxtext.uploadFence));
+
+	VK_CHECK(vkWaitForFences(m_device, 1, &m_gpuUploadConxtext.uploadFence, true, UINT64_MAX));
+	VK_CHECK(vkResetFences(m_device, 1, &m_gpuUploadConxtext.uploadFence));
+
+	VK_CHECK(vkResetCommandPool(m_device, m_gpuUploadConxtext.commandPool, 0));
+}
+
+
+
 void VulkanEngine::init() {
 	ZoneScopedNS("int", 40);
 	;
@@ -192,6 +230,15 @@ void VulkanEngine::init_commands() {
 			vkDestroyCommandPool(m_device, m_frames[i].command_pool, nullptr);
 			});
 	}
+
+	//create pool for upload context
+	VkCommandPoolCreateInfo uploadCommandPoolInfo = vkinit::command_pool_create_info(m_graphics_queue_family);
+	VK_CHECK(vkCreateCommandPool(m_device, &uploadCommandPoolInfo, nullptr, &m_gpuUploadConxtext.commandPool));
+
+	m_main_deletion_queue.push_function([=]() {
+		vkDestroyCommandPool(m_device, m_gpuUploadConxtext.commandPool, nullptr);
+		});
+
 }
 
 void VulkanEngine::init_render_pass() {
@@ -314,6 +361,16 @@ void VulkanEngine::init_sync_structs() {
 			vkDestroySemaphore(m_device, render_semaphore, nullptr);
 			});
 	}
+
+	VkFenceCreateInfo gpuUplaodFenceCreateInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+	//gpuUplaodFenceCreateInfo.flags = 
+	VK_CHECK(vkCreateFence(m_device, &gpuUplaodFenceCreateInfo, 0, &m_gpuUploadConxtext.uploadFence));
+	m_main_deletion_queue.push_function([=]() {
+		vkDestroyFence(m_device, m_gpuUploadConxtext.uploadFence, nullptr);
+		});
+
+
+
 }
 void VulkanEngine::cleanup() {
 	if (!m_isInitialized) {
@@ -344,8 +401,9 @@ void VulkanEngine::draw() {
 		1000000000));
 	VK_CHECK(vkResetFences(m_device, 1, &get_current_frame().render_fence));
 
+
 	uint32_t swapchain_image_index;
-	VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, 0,
+	VK_CHECK(vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX,
 		get_current_frame().present_semaphore, nullptr,
 		&swapchain_image_index));
 
@@ -558,11 +616,11 @@ void VulkanEngine::init_triangle_mesh_pipeline(
 	m_main_deletion_queue.push_function([=]() {
 		vkDestroyPipeline(m_device, m_mesh_pipeline, nullptr);
 
-		vkDestroyPipeline(m_device, m_triangle_pipeline, nullptr);
+		//vkDestroyPipeline(m_device, m_triangle_pipeline, nullptr);
 
 		vkDestroyPipelineLayout(m_device, m_mesh_pipeline_layout, nullptr);
 
-		vkDestroyPipelineLayout(m_device, m_triangle_pipeline_layout, nullptr);
+		//vkDestroyPipelineLayout(m_device, m_triangle_pipeline_layout, nullptr);
 		});
 }
 void VulkanEngine::init_scene() {
@@ -701,31 +759,62 @@ void VulkanEngine::load_meshes() {
 }
 
 void VulkanEngine::upload_mesh(Mesh& mesh) {
+
+	// creates a cpu buffer and a gpu buffer and copy the cpu buffer to the gpu buffer 
+
 	VkBufferCreateInfo bufferInfo = {};
 
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufferInfo.size =
 		static_cast<VkDeviceSize>(mesh.vertices.size() * sizeof(Vertex));
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
 	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+
+
+	AllocatedBuffer staggingBuffer;
 
 	// allocate the gpu buffer
 	VK_CHECK(vmaCreateBuffer(m_allocator, &bufferInfo, &allocInfo,
-		&mesh.vertexBuffer.buffer,
-		&mesh.vertexBuffer.allocation, nullptr));
+		&staggingBuffer.buffer,
+		&staggingBuffer.allocation, nullptr));
 
-	// copy from cpu to gpu
+	// copy to cpu buffer  
 	void* data;
-	vmaMapMemory(m_allocator, mesh.vertexBuffer.allocation, &data);
+	vmaMapMemory(m_allocator, staggingBuffer.allocation, &data);
 	memcpy(data, mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
-	vmaUnmapMemory(m_allocator, mesh.vertexBuffer.allocation);
+	vmaUnmapMemory(m_allocator, staggingBuffer.allocation);
+	//copy cpu buffer to gpu buffer 
+	{
+		// prepare the gpu buffer 
+		VkBufferCreateInfo bufferInfo = {};
 
-	m_main_deletion_queue.push_function([=]() {
-		vmaDestroyBuffer(m_allocator, mesh.vertexBuffer.buffer,
-			mesh.vertexBuffer.allocation);
-		});
+		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferInfo.size =
+			static_cast<VkDeviceSize>(mesh.vertices.size() * sizeof(Vertex));
+		bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+		VmaAllocationCreateInfo allocInfo = {};
+		allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+		VK_CHECK(vmaCreateBuffer(m_allocator, &bufferInfo, &allocInfo,
+			&mesh.vertexBuffer.buffer,
+			&mesh.vertexBuffer.allocation, nullptr));
+
+		immediateSubmit([=](VkCommandBuffer cmd) {
+			VkBufferCopy cpy = {};
+			cpy.size = static_cast<VkDeviceSize>(mesh.vertices.size() * sizeof(Vertex));
+			(vkCmdCopyBuffer(cmd, staggingBuffer.buffer, mesh.vertexBuffer.buffer, 1, &cpy));
+
+			});
+
+		m_main_deletion_queue.push_function([=]() {
+			vmaDestroyBuffer(m_allocator, mesh.vertexBuffer.buffer,
+				mesh.vertexBuffer.allocation);
+			});
+		vmaDestroyBuffer(m_allocator, staggingBuffer.buffer, staggingBuffer.allocation);
+	}
 }
 
 void VulkanEngine::run() {
@@ -812,6 +901,12 @@ AllocatedBuffer VulkanEngine::createBuffer(size_t allocSize, VkBufferUsageFlags 
 
 
 	VK_CHECK(vmaCreateBuffer(m_allocator, &bufferInfo, &memInfo, &buffer.buffer, &buffer.allocation, nullptr));
+
+	m_main_deletion_queue.push_function([=]() {
+		vmaDestroyBuffer(m_allocator, buffer.buffer,
+			buffer.allocation);
+	});
+
 	return buffer;
 }
 
