@@ -71,4 +71,7 @@ depth_stencil_create_info(bool depth_test, bool depth_write,
 VkDescriptorSetLayoutBinding descriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding);
 VkWriteDescriptorSet writeDescriptorBuffer(VkDescriptorType type, VkDescriptorSet dstSet, VkDescriptorBufferInfo* bufferInfo, uint32_t binding);
 
+VkSamplerCreateInfo samplerCreateInfo(VkFilter filters , VkSamplerAddressMode samplerAdressMode= VK_SAMPLER_ADDRESS_MODE_REPEAT );
+VkWriteDescriptorSet writeDescriptorImage(VkDescriptorType type, VkDescriptorSet dstSet, VkDescriptorImageInfo* imageInfo, uint32_t binding);
+
 } // namespace vkinit

@@ -5,10 +5,11 @@
 #include "vk_deletionQueue.h"
 #include "vk_initializers.h"
 #include "vk_renderable.h"
+#include "texture.h"
 #include <unordered_map>
 #include <vk_mesh.h>
 #include <vk_types.h>
-
+#include "camera.h"
 constexpr unsigned int FRAME_OVERLAP = 2;
 
 
@@ -55,6 +56,7 @@ struct GPUUploadContext {
 	VkCommandPool commandPool;
 };
 
+
 class VulkanEngine {
 public:
 
@@ -71,6 +73,7 @@ public:
 
 	// run main loop
 	void run();
+
 
 private:
 	void init_vulkan();
@@ -102,12 +105,16 @@ private:
 
 	FrameData& get_current_frame();
 
-
 	AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+
 	void init_descriptors();
 
 	// gpu upload context
 	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& func);
+
+	//upload Images
+	void load_images();
+
 private:
 	bool m_isInitialized{ false };
 	int m_frameNumber{ 0 };
@@ -166,6 +173,10 @@ private:
 	GPUUploadContext m_gpuUploadConxtext;;
 
 
+	// texture descriptor set layout 
+
+	VkDescriptorSetLayout m_textureSetlayout;
+
 	// meshes
 	Mesh m_triangle_mesh;
 	Mesh m_monkey;
@@ -173,8 +184,14 @@ private:
 	// deletion queue of vulkan objects
 	DeletionQueue m_main_deletion_queue;
 
+	Camera m_camera = {} ;
+
 	// renderables
 	std::vector<RenderObject> m_renderables;
 	std::unordered_map<std::string, Material> m_materials;
 	std::unordered_map<std::string, Mesh> m_meshes;
+
+	std::unordered_map<std::string, Texture> m_textures;
+
+	friend class TextureManager;
 };

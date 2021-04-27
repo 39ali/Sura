@@ -13,15 +13,6 @@
 #include "Tracy.hpp"
 #include "common/TracySystem.hpp"
 
-#define VK_CHECK(x)                                                            \
-  do {                                                                         \
-    VkResult err = x;                                                          \
-    if (err) {                                                                 \
-      std::cout << "Detected Vulkan error: " << err << std::endl;              \
-      abort();                                                                 \
-    }                                                                          \
-  } while (0)
-
 
 
 
@@ -86,6 +77,7 @@ void VulkanEngine::init() {
 
 	load_meshes();
 
+	load_images();
 	init_scene();
 
 	tracy::SetThreadName("main Thread");
@@ -594,7 +586,7 @@ void VulkanEngine::init_triangle_mesh_pipeline(
 	mesh_pipeline_layout_info.pPushConstantRanges = &push_constant;
 	mesh_pipeline_layout_info.pushConstantRangeCount = 1;
 
-	const VkDescriptorSetLayout setLayouts[] = { m_descriptorSetLayout , m_objectSetLayout };
+	const VkDescriptorSetLayout setLayouts[] = { m_descriptorSetLayout , m_objectSetLayout, m_textureSetlayout };
 	mesh_pipeline_layout_info.pSetLayouts = setLayouts;
 	mesh_pipeline_layout_info.setLayoutCount = sizeof(setLayouts) / sizeof(setLayouts[0]);
 
@@ -608,7 +600,7 @@ void VulkanEngine::init_triangle_mesh_pipeline(
 
 	m_mesh_pipeline = builder.build_pipeline(m_device, m_render_pass);
 
-	create_material(m_mesh_pipeline, m_mesh_pipeline_layout, "basic_mesh");
+	create_material(m_mesh_pipeline, m_mesh_pipeline_layout, "texturedMesh");
 
 	vkDestroyShaderModule(m_device, vertex, nullptr);
 	vkDestroyShaderModule(m_device, frag, nullptr);
@@ -625,34 +617,70 @@ void VulkanEngine::init_triangle_mesh_pipeline(
 }
 void VulkanEngine::init_scene() {
 
-	RenderObject monkey;
-	monkey.mesh = get_mesh("monkey");
-	monkey.material = get_material("basic_mesh");
-	monkey.transform = glm::mat4{ 1.0 };
-	m_renderables.push_back(monkey);
+	//RenderObject monkey;
+	//monkey.mesh = get_mesh("monkey");
+	//monkey.material = get_material("basic_mesh");
+	//monkey.transform = glm::mat4{ 1.0 };
+	//m_renderables.push_back(monkey);
 
 
-	//add random triangles 
-	for (int x = -20; x <= 20; x++) {
-		for (int y = -20; y <= 20; y++) {
+	////add random triangles 
+	//for (int x = -20; x <= 20; x++) {
+	//	for (int y = -20; y <= 20; y++) {
 
-			RenderObject tri;
-			tri.mesh = get_mesh("triangle");
-			tri.material = get_material("basic_mesh");
-			glm::mat4 translation =
-				glm::translate(glm::mat4{ 1.0 }, glm::vec3(x, 0, y));
-			glm::mat4 scale = glm::scale(glm::mat4{ 1.0 }, glm::vec3(0.2, 0.2, 0.2));
-			tri.transform = translation * scale;
+	//		RenderObject tri;
+	//		tri.mesh = get_mesh("triangle");
+	//		tri.material = get_material("basic_mesh");
+	//		glm::mat4 translation =
+	//			glm::translate(glm::mat4{ 1.0 }, glm::vec3(x, 0, y));
+	//		glm::mat4 scale = glm::scale(glm::mat4{ 1.0 }, glm::vec3(0.2, 0.2, 0.2));
+	//		tri.transform = translation * scale;
 
-			m_renderables.push_back(tri);
-		}
-	}
+	//		m_renderables.push_back(tri);
+	//	}
+	//}
+
+
+	VkSamplerCreateInfo samplerInfo = vkinit::samplerCreateInfo(VK_FILTER_NEAREST);;
+	VkSampler sampler;
+
+	VK_CHECK(vkCreateSampler(m_device, &samplerInfo, 0, &sampler));
+
+	Material* mat = get_material("texturedMesh");
+	Texture& texture = m_textures["empire_diffuse"];
+	VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = m_descriptorPool;
+	allocInfo.descriptorSetCount = 1;;
+	allocInfo.pSetLayouts = &m_textureSetlayout;
+
+	VK_CHECK(vkAllocateDescriptorSets(m_device, &allocInfo, &mat->textureSet));
+
+	//write to the set so that it points to our texture 
+	VkDescriptorImageInfo imageBufferInfo = {};
+	imageBufferInfo.sampler = sampler;
+	imageBufferInfo.imageView = texture.imageView;
+	imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	VkWriteDescriptorSet write = vkinit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mat->textureSet, &imageBufferInfo, 0);
+
+	vkUpdateDescriptorSets(m_device, 1, &write, 0, 0);
+
+
+	RenderObject mesh = {};
+
+	mesh.mesh = get_mesh("empire");
+	mesh.material = get_material("texturedMesh");
+	mesh.transform = glm::translate(glm::vec3(5, -10, 0));
+
+	m_renderables.push_back(mesh);
 }
+
 void VulkanEngine::draw_objects(VkCommandBuffer cmd, RenderObject* first,
 	size_t count) {
-	glm::vec3 camPos = { 0.f, -6.f, -10.f };
 
-	glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
+
+
+	glm::mat4 view = m_camera.getView(); // glm::translate(glm::mat4(1.f), camPos);
 	// camera projection
 	glm::mat4 projection =
 		glm::perspective(glm::radians(100.f), 1700.f / 900.f, 0.1f, 200.0f);
@@ -716,6 +744,12 @@ void VulkanEngine::draw_objects(VkCommandBuffer cmd, RenderObject* first,
 
 			//object data (transform matrix)
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, object.material->pipelineLayout, 1, 1, &frameData.objectDescriptor, 0, 0);
+
+			if (object.material->textureSet != VK_NULL_HANDLE) {
+				//texture descriptor 
+				vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, object.material->pipelineLayout, 2, 1, &object.material->textureSet, 0, 0);
+			}
+
 		}
 
 		//glm::mat4 mesh_matrix = object.transform;
@@ -756,6 +790,13 @@ void VulkanEngine::load_meshes() {
 
 	m_meshes["monkey"] = m_monkey;
 	m_meshes["triangle"] = m_triangle_mesh;
+
+	//textured mesh
+	Mesh mesh{};
+	mesh.load_from_obj("../../assets/lost_empire.obj");
+	upload_mesh(mesh);
+	m_meshes["empire"] = mesh;
+
 }
 
 void VulkanEngine::upload_mesh(Mesh& mesh) {
@@ -831,18 +872,56 @@ void VulkanEngine::run() {
 			case SDL_QUIT:
 				bQuit = true;
 				break;
-			case SDL_KEYDOWN:
-				if (e.key.keysym.sym == SDLK_ESCAPE) {
+			case SDL_KEYDOWN: {
+				switch (e.key.keysym.sym)
+				{
+				case SDLK_ESCAPE:
 					bQuit = true;
+					break;
+				case SDLK_w:
+					m_camera.translate(glm::vec3{ 0.0,0.0,-1.0 });
+					break;
+				case SDLK_s:
+					m_camera.translate(glm::vec3{ 0.0,0.0,1.0 });
+					break;
+				case SDLK_a:
+					m_camera.translate(glm::vec3{ -1.0,0.0,0.0 });
+					break;
+				case SDLK_d:
+					m_camera.translate(glm::vec3{ 1.0,0.0,0.0 });
+					break;
+				default:
+					break;
 				}
 				break;
-			default:
+			}
+							//If mouse event happened
+			case  SDL_MOUSEMOTION:
+			case SDL_MOUSEBUTTONDOWN:
+			case  SDL_MOUSEBUTTONUP:
+			{
+				//Get mouse position
+				int x, y;
+				SDL_GetMouseState(&x, &y);
+
+			
+
+				static int  dx = 0, dy = 0;
+
+				float  _x = x-dx;
+				float  _y = -(y-dy);
+				dx = x; 
+				dy = y; 
+				printf("x: %f , y: %f \n", _x, _y);
+				m_camera.rotate(_y, glm::vec3{ 1.,0.0,0.0 });
+				//m_camera.rotate(_x, glm::vec3{ 0.,1.0,0.0 });
+
 				break;
 			}
-			if (e.type == SDL_QUIT)
-				bQuit = true;
-		}
 
+			}
+		}
+		m_camera.update();
 		draw();
 	}
 }
@@ -905,7 +984,7 @@ AllocatedBuffer VulkanEngine::createBuffer(size_t allocSize, VkBufferUsageFlags 
 	m_main_deletion_queue.push_function([=]() {
 		vmaDestroyBuffer(m_allocator, buffer.buffer,
 			buffer.allocation);
-	});
+		});
 
 	return buffer;
 }
@@ -917,9 +996,11 @@ void VulkanEngine::init_descriptors() {
 
 	VkDescriptorSetLayoutBinding    cameraBind = vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
 	VkDescriptorSetLayoutBinding    sceneBind = vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-	VkDescriptorSetLayoutBinding    objectBind = vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
-
 	VkDescriptorSetLayoutBinding bindings[] = { cameraBind,sceneBind };
+
+	VkDescriptorSetLayoutBinding    objectBind = vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
+	VkDescriptorSetLayoutBinding    textureBind = vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+
 
 
 	VkDescriptorSetLayoutCreateInfo setInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -932,11 +1013,17 @@ void VulkanEngine::init_descriptors() {
 	setInfo2.bindingCount = 1;
 	VK_CHECK(vkCreateDescriptorSetLayout(m_device, &setInfo2, 0, &m_objectSetLayout));
 
+	VkDescriptorSetLayoutCreateInfo setInfo3 = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	setInfo3.pBindings = &textureBind;
+	setInfo3.bindingCount = 1;
+	VK_CHECK(vkCreateDescriptorSetLayout(m_device, &setInfo3, 0, &m_textureSetlayout));
+
 
 	std::vector<VkDescriptorPoolSize>  sizes = {
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,10} ,
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ,10 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,10 }
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,10 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,10 }
 	};
 
 	VkDescriptorPoolCreateInfo createInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
@@ -1017,4 +1104,18 @@ size_t VulkanEngine::alignUniformBufferSize(size_t originalSize) {
 	return alignedSize;
 }
 
+
+void VulkanEngine::load_images() {
+
+	Texture tx;
+
+	TextureManager::loadImageFromFile(*this, "../../assets/lost_empire-RGBA.png", tx.image);
+
+	VkImageViewCreateInfo imageInfo = vkinit::imageview_create_info(VK_FORMAT_R8G8B8A8_SRGB, tx.image.image, VK_IMAGE_ASPECT_COLOR_BIT);
+
+	VK_CHECK(vkCreateImageView(m_device, &imageInfo, 0, &tx.imageView));
+
+	m_textures["empire_diffuse"] = tx;
+
+}
 

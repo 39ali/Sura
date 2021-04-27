@@ -3,8 +3,10 @@
 layout (location=0) in vec3 iPosition ; 
 layout (location=1) in vec3 iNormal ; 
 layout (location=2) in vec3 iColor;
+layout (location=3) in vec2 iUv;
 
 layout (location=0) out vec3 oColor;
+layout (location=1) out vec2 oUv;
 
 layout(set=0,binding=0) uniform CameraData {
     mat4 view;
@@ -33,4 +35,5 @@ void main (){
     mat4 transformMatrix = cameraData.projView* modelMatrix; 
     gl_Position =transformMatrix * vec4 (iPosition, 1.0);
     oColor = iColor;
+    oUv = iUv;
 }

@@ -6,6 +6,7 @@
 struct Material {
   VkPipeline pipeline;
   VkPipelineLayout pipelineLayout;
+  VkDescriptorSet textureSet ;
 };
 
 struct RenderObject {
