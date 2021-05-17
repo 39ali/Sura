@@ -6,8 +6,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <iostream>
-#include <vk_initializers.h>
-#include <vk_types.h>
+#include "vk_initializers.h"
+#include "vk_types.h"
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 #include "Tracy.hpp"
@@ -861,7 +861,7 @@ void VulkanEngine::upload_mesh(Mesh& mesh) {
 void VulkanEngine::run() {
 	SDL_Event e;
 	bool bQuit = false;
-
+	const float amount = 1; 
 	// main loop
 	while (!bQuit) {
 		// Handle events on queue
@@ -879,16 +879,16 @@ void VulkanEngine::run() {
 					bQuit = true;
 					break;
 				case SDLK_w:
-					m_camera.translate(glm::vec3{ 0.0,0.0,-1.0 });
+					m_camera.walk(amount);
 					break;
 				case SDLK_s:
-					m_camera.translate(glm::vec3{ 0.0,0.0,1.0 });
+					m_camera.walk(-amount);
 					break;
 				case SDLK_a:
-					m_camera.translate(glm::vec3{ -1.0,0.0,0.0 });
+					m_camera.strafe(-amount);
 					break;
 				case SDLK_d:
-					m_camera.translate(glm::vec3{ 1.0,0.0,0.0 });
+					m_camera.strafe(amount);
 					break;
 				default:
 					break;
@@ -903,17 +903,46 @@ void VulkanEngine::run() {
 				//Get mouse position
 				int x, y;
 				SDL_GetMouseState(&x, &y);
+		//		SDL_ShowCursor(0);
+				SDL_SetRelativeMouseMode(SDL_TRUE);
+
+				static int  oldX = 0, oldY = 0;
+
+				static float dx = 0, dy = 0; 
+				const float sensitivity = 0.005;;
+				  dx += (x-oldX) *sensitivity;
+				  dy += (y-oldY) * sensitivity;;
 
 			
+				  const float wrapX = 5* sensitivity;
+				  if (x > m_windowExtent.width - 2) {
+					  dx += wrapX; 
+				  }
+				  if (x <= 2) {
+					  dx -= wrapX;
+				  }
 
-				static int  dx = 0, dy = 0;
+				  const float wrapY = 5* sensitivity;
+				  if (y > m_windowExtent.height - 2) {
+					  dy += wrapY;
+				  }
+				  if (y <= 2) {
+					  dy -= wrapY;
+				  }
 
-				float  _x = x-dx;
-				float  _y = -(y-dy);
-				dx = x; 
-				dy = y; 
-				printf("x: %f , y: %f \n", _x, _y);
-				m_camera.rotate(_y, glm::vec3{ 1.,0.0,0.0 });
+				  const float pie = 3.14;
+				  if (dy < -pie * 0.5) {
+					  dy = -pie * 0.5;
+				  }
+				  if (dy > pie * 0.5) {
+					  dy = pie * 0.5;
+				  }
+
+
+				oldX = x; 
+				oldY = y; 
+			
+				m_camera.rotate(-dx,dy, 0);
 				//m_camera.rotate(_x, glm::vec3{ 0.,1.0,0.0 });
 
 				break;

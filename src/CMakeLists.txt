@@ -5,7 +5,11 @@ get_filename_component(_parent ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 
 
 # Add source to this project's executable.
-file(GLOB src "*.h" "*.cpp" "*.c")
+file(GLOB_RECURSE  src "*.h" "*.cpp" )
+# Create the source groups for source tree with root at CMAKE_CURRENT_SOURCE_DIR.
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${src})
+
 
 add_executable (Sura
 ${src}
@@ -23,14 +27,9 @@ target_link_libraries(Sura Vulkan::Vulkan SDL2main SDL2-static)
 
 add_dependencies(Sura Shaders)
 
-#using c++17
-if(MSVC)
-	message("setting c++17")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  /std:c++17")
-else(MSVC)
-	target_compile_features("Sura" PRIVATE cxx_std_17)
-endif(MSVC)
 
+
+target_compile_features("Sura" PRIVATE cxx_std_17)
 if(MSVC)
 	message("building with multiple processors")
 	target_compile_options(Sura PRIVATE "/MP")

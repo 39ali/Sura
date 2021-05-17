@@ -7,9 +7,9 @@
 #include "vk_renderable.h"
 #include "texture.h"
 #include <unordered_map>
-#include <vk_mesh.h>
-#include <vk_types.h>
-#include "camera.h"
+#include "vk_mesh.h"
+#include "vk_types.h"
+#include "camera/camera.h"
 constexpr unsigned int FRAME_OVERLAP = 2;
 
 

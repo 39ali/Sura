@@ -40,7 +40,7 @@ target_sources(tinyobjloader PRIVATE
 target_include_directories(tinyobjloader PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/tinyobjloader" )
 
 ##sdl2
-#message("building SDL2")
+message("building SDL2")
 set(SDL_STATIC ON CACHE BOOL "Build a static version of SDL2")
 set( SDL_SHARED OFF CACHE BOOL "" FORCE )
 add_subdirectory(SDL2)
@@ -68,3 +68,17 @@ target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2main SDL2-static)
 
 
 target_include_directories(stb_image INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb_image" )
+
+
+
+
+
+target_compile_features(vkbootstrap PRIVATE cxx_std_17)
+if(MSVC)
+	target_compile_options(imgui PRIVATE "/MP")
+    target_compile_options(tinyobjloader PRIVATE "/MP")
+    target_compile_options(SDL2main PRIVATE "/MP")
+    target_compile_options(SDL2-static PRIVATE "/MP")
+    target_compile_options(vkbootstrap PRIVATE "/MP")
+endif()
+
