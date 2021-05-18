@@ -1,6 +1,5 @@
 ﻿#pragma once
 #pragma warning(disable : 26812)
-#include <vector>
 #include "vk_types.h"
 namespace vkinit {
 

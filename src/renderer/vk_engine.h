@@ -6,7 +6,6 @@
 #include "vk_initializers.h"
 #include "vk_renderable.h"
 #include "texture.h"
-#include <unordered_map>
 #include "vk_mesh.h"
 #include "vk_types.h"
 #include "camera/camera.h"

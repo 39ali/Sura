@@ -27,7 +27,7 @@ target_link_libraries(Sura Vulkan::Vulkan SDL2main SDL2-static)
 
 add_dependencies(Sura Shaders)
 
-
+target_precompile_headers(Sura PRIVATE suraPCH.h)
 
 target_compile_features("Sura" PRIVATE cxx_std_17)
 if(MSVC)

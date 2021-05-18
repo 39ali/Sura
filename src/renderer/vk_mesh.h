@@ -1,6 +1,5 @@
 #pragma once
 #include <glm/vec3.hpp>
-#include <vector>
 #include "vk_types.h"
 
 struct VertexInputDescription {

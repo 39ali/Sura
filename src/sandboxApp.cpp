@@ -2,7 +2,7 @@
 #include "Sura.h"
 class Sandbox : public Sura::Application {
 
-public : 
+public:
 	Sandbox() {}
 	~Sandbox() {}
 

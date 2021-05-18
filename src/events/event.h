@@ -1,6 +1,5 @@
 #pragma once
 #include "core.h"
-#include <functional>
 
 namespace Sura {
 

@@ -1,6 +1,4 @@
 #pragma once
-#include <deque>
-#include <functional>
 class DeletionQueue {
 public:
   std::deque<std::function<void()>> queue;

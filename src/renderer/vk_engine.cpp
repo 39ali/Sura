@@ -2,10 +2,8 @@
 #pragma warning(disable : 26812)
 #include <SDL.h>
 #include <SDL_vulkan.h>
-#include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#include <iostream>
 #include "vk_initializers.h"
 #include "vk_types.h"
 #define VMA_IMPLEMENTATION
