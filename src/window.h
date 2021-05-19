@@ -24,9 +24,10 @@ namespace Sura {
 
 		virtual unsigned int getWidth() const = 0;
 		virtual unsigned int getHeight() const = 0;
-
+		virtual void setEventCallbackFn(const EventCallbackFn& fn) = 0;
 		static Window* create(const WindowInfo& info);
-
+	protected:
+		EventCallbackFn m_eventCallbackFn = nullptr;
 	};
 
 

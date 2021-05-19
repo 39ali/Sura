@@ -1,8 +1,12 @@
-#include "windowsWindows.h"
-
 #pragma warning(disable : 26812)
 #include <SDL.h>
 #include <SDL_vulkan.h>
+#include "events/applicationEvent.h"
+#include "events/keyEvent.h"
+#include "events/mouseEvent.h"
+
+#include "windowsWindows.h"
+
 
 namespace Sura {
 
@@ -21,7 +25,7 @@ namespace Sura {
 	}
 
 	void WindowsWindow::onUpdate() {
-
+		pollEvents();
 	}
 
 	void WindowsWindow::init(const WindowInfo& info) {
@@ -38,7 +42,90 @@ namespace Sura {
 
 		assert(m_window && "SDL window creation error");
 
+
 	}
+
+	void WindowsWindow::pollEvents() {
+
+		if (!m_eventCallbackFn) {
+			return;
+		}
+
+		SDL_Event e;
+		while (SDL_PollEvent(&e) != 0) {
+			switch (e.type) {
+
+			case SDL_KEYDOWN: {
+
+				switch (e.key.state)
+				{
+				case SDL_PRESSED: {
+					KeyPressedEvent ev(e.key.keysym.sym, e.key.repeat);
+					m_eventCallbackFn(ev);
+					break;
+				}
+				case SDL_RELEASED: {
+					KeyReleasedEvent ev(e.key.keysym.sym);
+					m_eventCallbackFn(ev);
+					break;
+				}
+
+				}
+
+				break;
+			}
+
+			case SDL_MOUSEBUTTONUP: {
+
+				MouseButtonReleasedEvent ev(e.button.button);
+				m_eventCallbackFn(ev);
+				break;
+			}
+			case SDL_MOUSEBUTTONDOWN: {
+				MouseButtonPressedEvent ev(e.button.button);
+				m_eventCallbackFn(ev);
+				break;
+			}
+
+
+			case SDL_MOUSEMOTION: {
+				MouseMovedEvent ev(e.button.x, e.button.y);
+				m_eventCallbackFn(ev);
+				break;
+			}
+
+			case SDL_MOUSEWHEEL: {
+				MouseScrolledEvent ev(e.wheel.x, e.wheel.y);
+				m_eventCallbackFn(ev);
+				break;
+			}
+
+
+			case SDL_WINDOWEVENT: {
+
+				switch (e.window.event) {
+				case SDL_WINDOWEVENT_CLOSE:
+				{
+					WindowCloseEvent ev;
+					m_eventCallbackFn(ev);
+					break;
+				}
+				case SDL_WINDOWEVENT_RESIZED:
+				{
+					WindowResizeEvent ev(e.window.data1, e.window.data2);
+					m_eventCallbackFn(ev);
+					break;
+				}
+
+				}
+
+			}
+
+			}
+		}
+
+	}
+
 	void WindowsWindow::shutdown() {
 
 		SDL_DestroyWindow(m_window);

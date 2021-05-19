@@ -1,7 +1,5 @@
 #include "application.h"
 
-#include "events/applicationEvent.h"
-
 namespace Sura {
 
 
@@ -9,8 +7,25 @@ namespace Sura {
 
 		WindowInfo info{ "Sura",1280 , 720 };
 		m_window = std::unique_ptr<Window>{ Window::create(info) };
+		m_window->setEventCallbackFn(BIND_EVENT(Application::onEvent));
 	}
 	Application::~Application() {}
+
+	void Application::onEvent(Event& e) {
+
+		EventDispatcher dispatcher(e);
+
+		dispatcher.dispatch<WindowCloseEvent>(BIND_EVENT(Application::onWindowClose));
+
+
+	}
+
+	bool Application::onWindowClose(WindowCloseEvent& e) {
+
+		m_running = false;
+
+		return true;
+	}
 
 	void Application::run() {
 
@@ -21,7 +36,7 @@ namespace Sura {
 			printf("lol");
 		}
 
-		while (m_running && 1) {
+		while (m_running ) {
 			m_window->onUpdate();
 
 		};

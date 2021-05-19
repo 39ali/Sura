@@ -21,7 +21,12 @@ namespace Sura {
 			KeyEvent(keycode), m_repeatCount(repeatCount) {}
 
 		inline int getRepeatCount() const { return m_repeatCount; }
+		std::string toString() override {
+			std::stringstream ss;
+			ss << "KeyPressedEvent:" << m_keycode << ",repeat:" << m_repeatCount;
 
+			return ss.str();
+		}
 		EVENT_CLASS_TYPE(KeyPressed)
 	private:
 		int m_repeatCount;
@@ -34,6 +39,12 @@ namespace Sura {
 		KeyReleasedEvent(int keycode) :
 			KeyEvent(keycode) {}
 
+		std::string toString() override {
+			std::stringstream ss;
+			ss << "KeyReleasedEvent:" << m_keycode;
+
+			return ss.str();
+		}
 		EVENT_CLASS_TYPE(KeyReleased)
 	};
 

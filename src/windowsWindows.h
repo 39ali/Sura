@@ -14,6 +14,8 @@ namespace Sura {
 
 		inline unsigned int getWidth() const override { return m_info.width; };
 		inline unsigned int getHeight() const  override { return m_info.height; };
+		void setEventCallbackFn(const EventCallbackFn& fn)  override { m_eventCallbackFn = fn; };
+		void pollEvents();
 
 	private:
 		void init(const WindowInfo& info);

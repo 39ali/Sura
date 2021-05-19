@@ -5,7 +5,7 @@ namespace Sura {
 
 	enum class EventType {
 		None = 0,
-		WindowClose,WindowResize,
+		WindowClose, WindowResize,
 		KeyPressed, KeyReleased,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
 	};
@@ -36,8 +36,9 @@ namespace Sura {
 		inline bool isInCategory(EventCategory category) {
 			return getCategoryFlags() & (int)category;
 		}
-	protected:
-		bool m_handled = false; 
+		virtual std::string toString() { return ""; }
+	public:
+		bool m_handled = false;
 	};
 
 
@@ -46,20 +47,20 @@ namespace Sura {
 		template <typename T>
 		using EventCallback = std::function<bool(T&)>;
 	public:
-		EventDispatcher(Event& event): m_event(event){}
+		EventDispatcher(Event& event) : m_event(event) {}
 
-		template<typename T> 
-		bool dispatch(EventCallback<T> func) {
-		
+		template<typename T>
+		bool dispatch(EventCallback<T> callback) {
+
 			if (m_event.getEventType() == T::getStaticType()) {
-				m_event.m_handled = func(m_event); //func(*(T*)(&m_event));
-				return true; 
+				m_event.m_handled = callback(*(T*)(&m_event));
+				return true;
 			}
 			return false;
 		}
 
 	private:
-	Event& m_event; 
+		Event& m_event;
 	};
 
 }
