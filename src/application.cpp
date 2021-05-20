@@ -17,15 +17,23 @@ namespace Sura {
 
 		dispatcher.dispatch<WindowCloseEvent>(BIND_EVENT(Application::onWindowClose));
 
+		m_layerStack.onEvent(e);
 
 	}
 
 	bool Application::onWindowClose(WindowCloseEvent& e) {
-
 		m_running = false;
-
 		return true;
 	}
+
+
+	void Application::pushLayer(Layer* layer) {
+		m_layerStack.pushLayer(layer);
+	}
+	void Application::pushOverlay(Layer* layer) {
+		m_layerStack.pushOverlay(layer);
+	}
+
 
 	void Application::run() {
 
@@ -36,10 +44,10 @@ namespace Sura {
 			printf("lol");
 		}
 
-		while (m_running ) {
+		while (m_running) {
+			m_layerStack.onUpdate();
 			m_window->onUpdate();
-
-		};
+		}
 
 	}
 
