@@ -18,7 +18,7 @@ bool TextureManager::loadImageFromFile(VulkanEngine& engine, const char* file, A
 
 	void* pixelPtr = pixels;
 
-	VkDeviceSize imageSize = static_cast<uint64_t> (width * height * 4);
+	VkDeviceSize imageSize = static_cast<VkDeviceSize> (width * height * 4);
 
 
 
